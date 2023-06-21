@@ -71,7 +71,17 @@ async function main() {
   console.log(chalk.cyan("=== question ==="));
   console.log(chalk.gray(question));
 
-  const prompt = createPrompt(question, ctx);
+  let prompt = createPrompt(question, ctx);
+  // Send a vanilla prompt to the model
+  if (process.env.BYPASS_CONTEXT == "1") {
+    console.log(chalk.red("=== using plain question ==="));
+    prompt = question;
+  }
+  // Log the prompt
+  if (process.env.WITH_PROMPT == "1") {
+    console.log(chalk.yellow("=== prompt ==="));
+    console.log(chalk.gray(prompt));
+  }
 
   const completionText = await openai.createCompletion({ prompt });
 

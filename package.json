@@ -6,7 +6,8 @@
   "exports": "./index.js",
   "scripts": {
     "seed": "NODE_NO_WARNINGS=1 node --loader ts-node/esm ./scripts/seed.ts",
-    "start": "NODE_NO_WARNINGS=1 node --loader ts-node/esm ./scripts/run.ts"
+    "start": "NODE_NO_WARNINGS=1 node --loader ts-node/esm ./scripts/run.ts",
+    "start:with-prompt": "NODE_NO_WARNINGS=1 WITH_PROMPT=1 node --loader ts-node/esm ./scripts/run.ts"
   },
   "keywords": [],
   "author": "",
