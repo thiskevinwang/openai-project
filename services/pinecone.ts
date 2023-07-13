@@ -79,19 +79,16 @@ export class PineconeClient implements DBClient {
     return upsertResult.upsertedCount!;
   }
 
-  async resetIndex(indexName: string) {
-    console.log("deleting...", indexName);
-    await this.client.deleteIndex({
-      indexName,
-    });
-
-    console.log("recreating...");
-    await this.client.createIndex({
-      createRequest: {
-        dimension: 1536,
-        name: indexName,
-        metric: "cosine",
+  async resetIndex(indexName: string, namespace: string) {
+    // fetch all items and delete them all
+    this.#index = this.client.Index(indexName);
+    this.#namespace = namespace;
+    const allItems = await this.#index._delete({
+      deleteRequest: {
+        deleteAll: true,
+        namespace: this.#namespace,
       },
     });
+    console.log("ok");
   }
 }
