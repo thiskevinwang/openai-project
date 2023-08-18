@@ -6,7 +6,6 @@ export type { Vector } from "@pinecone-database/pinecone";
 import type { VectorOperationsApi } from "@pinecone-database/pinecone/dist/pinecone-generated-ts-fetch";
 
 import type { DBClient } from "./db.interface";
-
 export async function getPineconeClient() {
   // todo: init once
   const pinecone = new _PineconeClient();
@@ -19,37 +18,23 @@ export async function getPineconeClient() {
 
 export class PineconeClient implements DBClient {
   client: _PineconeClient;
-  #namespace: string | undefined = undefined;
-  #index: VectorOperationsApi | undefined = undefined;
+  index: VectorOperationsApi;
 
-  constructor(client: _PineconeClient) {
+  constructor(client: _PineconeClient, index: VectorOperationsApi) {
     this.client = client;
+    this.index = index;
   }
 
   /** An async-constructor helper */
-  static async init() {
+  static async init({ indexName }: { indexName: string }) {
     const client = await getPineconeClient();
-    return new PineconeClient(client);
-  }
-
-  namespace(value: string) {
-    this.#namespace = value;
-    return this;
-  }
-
-  index(indexName: string) {
-    this.#index = this.client.Index(indexName);
-    return this;
+    const index = client.Index(indexName);
+    return new PineconeClient(client, index);
   }
 
   async query({ vector }: { vector: number[] }) {
-    if (!this.#index) {
-      throw new Error("index not set. Please call Pinecone.index() first.");
-    }
-
-    const queryResponse = await this.#index.query({
+    const queryResponse = await this.index.query({
       queryRequest: {
-        namespace: this.#namespace ?? undefined,
         vector,
         topK: 10,
         includeMetadata: true,
@@ -67,28 +52,39 @@ export class PineconeClient implements DBClient {
 
   /** returns upserted count */
   async upsert({ vectors }: { vectors: Vector[] }) {
-    if (!this.#index) {
-      throw new Error("index not set. Please call Pinecone.index() first.");
-    }
-    const upsertResult = await this.#index.upsert({
+    const upsertResult = await this.index.upsert({
       upsertRequest: {
         vectors,
-        namespace: this.#namespace,
       },
     });
     return upsertResult.upsertedCount!;
   }
 
-  async resetIndex(indexName: string, namespace: string) {
-    // fetch all items and delete them all
-    this.#index = this.client.Index(indexName);
-    this.#namespace = namespace;
-    const allItems = await this.#index._delete({
-      deleteRequest: {
-        deleteAll: true,
-        namespace: this.#namespace,
+  async delete({ ids }: { ids: string[] }) {
+    const deleteResult = await this.index.delete1({
+      ids,
+    });
+    return deleteResult;
+  }
+
+  static async createIndex({ indexName }: { indexName: string }) {
+    const client = await getPineconeClient();
+    await client.createIndex({
+      createRequest: {
+        dimension: 1536,
+        name: indexName,
+        metric: "cosine",
       },
     });
-    console.log("ok");
+  }
+
+  async clearIndex(indexName: string) {
+    console.log("clear...", indexName);
+    await this.index._delete({
+      deleteRequest: {
+        deleteAll: true,
+      },
+    });
+    console.log("cleared", indexName);
   }
 }
